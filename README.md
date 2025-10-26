@@ -1,22 +1,28 @@
 # NotebookLM Clone
 
-A TypeScript-based clone of Google's NotebookLM, leveraging LangChain and OpenAI's GPT models to provide intelligent document analysis, conversational AI capabilities, and tool calling functionality.
+A TypeScript-based AI toolkit leveraging LangChain, OpenAI's GPT models, and Groq for intelligent document analysis, conversational AI, text-to-speech, and image generation capabilities.
 
 ## 🚀 Features
 
-- **AI-Powered Chat**: Interact with documents using OpenAI's GPT models
-- **Tool Calling**: Execute functions and APIs through AI (multiplication, web search)
+- **AI-Powered Chat**: Interact with documents using OpenAI's GPT-4o-mini model
+- **Tool Calling**: Execute functions and APIs through AI
+  - ✅ **Multiplication**: Perform math calculations
+  - ✅ **Web Search**: Real-time search using Tavily API
+  - ✅ **Website Visitor**: Fetch and analyze web content
+  - ✅ **Text-to-Speech**: Convert text to audio using Groq's PlayAI TTS
+  - ✅ **Image Generation**: Create images using FLUX Unlimited model
 - **LangChain Integration**: Built with LangChain for robust AI workflows
 - **Runnable Chains**: Chain multiple operations together
 - **Structured Output**: Get typed responses with Zod schemas
 - **TypeScript**: Fully typed for better development experience
-- **Express Server**: RESTful API for document processing
+- **Smart File Naming**: AI-generated filenames for outputs
 
 ## 📋 Prerequisites
 
 - Node.js (v16 or higher)
 - npm or yarn
 - OpenAI API key
+- Groq API key (for text-to-speech)
 - Tavily API key (for web search functionality)
 
 ## 🛠️ Installation
@@ -35,8 +41,13 @@ npm install
 3. Create a `.env` file in the root directory:
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_API_BASE_URL=https://api.chatanywhere.tech/v1
+GROQ_API_KEY=your_groq_api_key_here
 TAVILY_API_KEY=your_tavily_api_key_here
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_PROJECT=your_project_name
 ```
 
 ## 🏃 Running the Project
@@ -86,13 +97,14 @@ npx tsx src/runnable.ts
 notebookllm-clone/
 ├── src/
 │   ├── index.ts          # Main entry point with structured output
-│   ├── tools.ts          # Tool calling examples (multiply, web search)
+│   ├── tools.ts          # AI tools: TTS, image gen, web search, math
 │   ├── runnable.ts       # Runnable chains and sequences
 │   └── server.ts         # Express server setup
 ├── dist/                 # Compiled JavaScript output
 ├── tsconfig.json         # TypeScript configuration
 ├── package.json          # Project dependencies
-└── .env                  # Environment variables (not in repo)
+├── .env                  # Environment variables (not in repo)
+└── generated files/      # Output: images, audio files
 ```
 
 ## 🔧 Configuration
@@ -100,8 +112,8 @@ notebookllm-clone/
 ### TypeScript Configuration
 
 The project uses the following TypeScript settings:
-- **Target**: ES2020
-- **Module**: node16
+- **Target**: ES2022
+- **Module**: ES2022
 - **Module Resolution**: bundler
 - **Strict Mode**: Enabled
 - **Source Maps**: Enabled
@@ -112,8 +124,11 @@ The project uses the following TypeScript settings:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `OPENAI_API_KEY` | Your OpenAI API key | Yes |
-| `OPENAI_API_BASE_URL` | OpenAI API base URL | Yes |
-| `TAVILY_API_KEY` | Tavily API key for web search | Optional |
+| `OPENAI_API_BASE_URL` | OpenAI API base URL (or proxy) | Yes |
+| `GROQ_API_KEY` | Groq API key for text-to-speech | Yes |
+| `TAVILY_API_KEY` | Tavily API key for web search | Yes |
+| `LANGSMITH_API_KEY` | LangSmith API key for tracing | Optional |
+| `LANGSMITH_TRACING` | Enable LangSmith tracing (true/false) | Optional |
 
 ## 📚 Available Scripts
 
@@ -127,28 +142,49 @@ The project uses the following TypeScript settings:
 
 ## 🛠️ Examples
 
-### Tool Calling
-Execute functions through AI conversation:
-```typescript
-// AI can call tools like multiplication
-"What is 3 multiplied by 4?" → AI calls multiply tool → Returns 12
+### 1. Tool Calling - Multiplication
+Execute math calculations through AI:
+```bash
+User: "What is 3 multiplied by 4?"
+AI: Calls multiply tool → Returns 12
 ```
 
-### Web Search
-Search the web using Tavily:
-```typescript
-// AI can search for real-time information
-"What's the weather in New York?" → AI calls Tavily tool → Returns search results
+### 2. Web Search with Tavily
+Search the web for real-time information:
+```bash
+User: "What's the weather in Surat, India?"
+AI: Calls Tavily tool → Returns current weather data
 ```
 
-### Runnable Chains
+### 3. Text-to-Speech
+Convert text to audio using Groq's PlayAI:
+```bash
+User: "Convert 'Hello World' to speech"
+AI: Calls textToSpeech tool → Saves hello-world.wav
+```
+
+### 4. Image Generation
+Create images using FLUX Unlimited:
+```bash
+User: "Generate an image of a baby"
+AI: Calls generateImage tool → Saves baby-portrait.png
+```
+
+### 5. Website Content Fetching
+Visit and extract content from websites:
+```bash
+User: "What's on example.com?"
+AI: Calls visitWebsite tool → Returns page content
+```
+
+### 6. Runnable Chains
 Chain multiple operations:
 ```typescript
 const chain = RunnableSequence.from([uppercase, addExclamation, reverse]);
 const result = await chain.invoke("hello"); // "OLLEH!"
 ```
 
-### Structured Output
+### 7. Structured Output
 Get typed responses with validation:
 ```typescript
 const schema = z.object({
@@ -156,6 +192,23 @@ const schema = z.object({
 });
 const structuredLLM = chat.withStructuredOutput(schema);
 ```
+
+## 🎯 Key Features Explained
+
+### Smart File Naming
+All generated files (audio, images) are automatically named using AI:
+- Audio: `hello-world-speech.wav`
+- Images: `baby-portrait.png`
+
+### Tool Integration
+The AI automatically decides which tool to use based on your query:
+- Math questions → Multiply tool
+- Weather/news → Web search
+- Audio requests → Text-to-speech
+- Image requests → Image generation
+
+### Error Handling
+All tools include comprehensive error handling and return structured responses with success status.
 
 ## 🤝 Contributing
 
@@ -177,11 +230,25 @@ This project is licensed under the ISC License.
 ## 🙏 Acknowledgments
 
 - [LangChain](https://www.langchain.com/) for the AI framework
-- [OpenAI](https://openai.com/) for the GPT models
+- [OpenAI](https://openai.com/) for GPT-4o-mini model
+- [Groq](https://groq.com/) for PlayAI text-to-speech
 - [Tavily](https://tavily.com/) for web search API
+- [FLUX Unlimited](https://huggingface.co/spaces/NihalGazi/FLUX-Unlimited) for image generation
 - [Zod](https://zod.dev/) for schema validation
+- [@gradio/client](https://www.gradio.app/) for Gradio API integration
 - Inspired by Google's NotebookLM
 
 ## 📞 Support
 
 For support, please open an issue in the GitHub repository.
+
+## 🔗 Related Resources
+
+- [LangChain Documentation](https://js.langchain.com/docs/)
+- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
+- [Groq Documentation](https://console.groq.com/docs)
+- [Tavily API Docs](https://docs.tavily.com/)
+
+---
+
+Made with ❤️ by Ankit Singh
