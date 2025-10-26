@@ -12,7 +12,7 @@ import { ChatGroq } from "@langchain/groq";
 import { vi } from "zod/v4/locales";
 import fs from "fs";
 import path from "path";
-import {Client} from "@gradio/client";
+// Use dynamic import for ESM-only package '@gradio/client' where it's needed
 import { sync } from "resolve";
 
 const llm = new ChatOpenAI({
@@ -104,7 +104,8 @@ const textToSpeech = tool(
         const title = await titleORFileNameGenrate(text, 'fileName');
 
         console.log("Generated title:", title.content);
-        const speechFile = path.resolve(`./${title.content}.wav`);
+        const speechFile = path.resolve(`./genAudio/${title.content}.wav`);
+        console.log(response);
 
         // Convert response to buffer and save file
         const buffer = Buffer.from(await response.arrayBuffer());
@@ -175,6 +176,8 @@ const multiply = tool(
 
 const generateImage = tool(
     async ({prompt}) => {
+        // Dynamically import the ESM-only client at runtime to avoid CommonJS/ESM interop errors
+        const { Client } = await import("@gradio/client");
         const client = await Client.connect('NihalGazi/FLUX-Unlimited')
         const result = await client.predict("/generate_image", {
             prompt: prompt,
@@ -195,7 +198,7 @@ const generateImage = tool(
         const title = await titleORFileNameGenrate(prompt, 'fileName');
 
         console.log("Generated title:", title.content);
-        const imagePath = path.resolve(`./${title.content}.png`);
+        const imagePath = path.resolve(`./genImage/${title.content}.png`);
 
         await fs.promises.writeFile(imagePath, imageBuffer);
 
@@ -283,7 +286,7 @@ async function main() {
 
     })
 
-    const result = await toolChain.invoke("create a baby image");
+    const result = await toolChain.invoke("write a 1000 words baby story and convert the story to speech");
 
     // console.log("result:", result[0]);
     console.log("--------------------------------\n\n");
