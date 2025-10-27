@@ -2,11 +2,11 @@
   "name": "notebookllm-clone",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "types": "module",
+  "type": "commonjs",
   "dependencies": {
     "@langchain/core": "^1.0.1",
     "@langchain/groq": "^1.0.0",
+    "@langchain/langgraph": "^1.0.1",
     "@langchain/openai": "^1.0.0",
     "@langchain/tavily": "^1.0.0",
     "abort-controller": "^3.0.0",
@@ -185,6 +185,7 @@
     "gopd": "^1.2.0",
     "graphql": "^16.11.0",
     "graphql-request": "^6.1.0",
+    "groq-sdk": "^0.34.0",
     "gtoken": "^8.0.0",
     "has-flag": "^4.0.0",
     "has-property-descriptors": "^1.0.2",
@@ -432,7 +433,8 @@
     "watch": "tsc --watch",
     "dev": "tsc --watch",
     "runnable": "tsx src/tools.ts",
-    "tts": "tsx src/tts.ts"
+    "tts": "tsx src/tts.ts",
+    "lang": "tsx src/langraph.ts"
   },
   "repository": {
     "type": "git",
@@ -441,7 +443,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ankitsingh7777903679/notebookllm-clone/issues"
   },
