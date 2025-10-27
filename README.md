@@ -97,14 +97,17 @@ npx tsx src/runnable.ts
 notebookllm-clone/
 ├── src/
 │   ├── index.ts          # Main entry point with structured output
+│   ├── langraph.ts       # LangGraph agentic workflow with state management
 │   ├── tools.ts          # AI tools: TTS, image gen, web search, math
 │   ├── runnable.ts       # Runnable chains and sequences
-│   └── server.ts         # Express server setup
+│   └── tts.ts            # Text-to-speech utilities
+├── genAudio/             # Generated audio files output
+├── genImage/             # Generated image files output
 ├── dist/                 # Compiled JavaScript output
 ├── tsconfig.json         # TypeScript configuration
 ├── package.json          # Project dependencies
 ├── .env                  # Environment variables (not in repo)
-└── generated files/      # Output: images, audio files
+└── README.md             # This file
 ```
 
 ## 🔧 Configuration
@@ -139,6 +142,480 @@ The project uses the following TypeScript settings:
 | `npm run watch` | `tsc --watch` | Watch mode with auto-recompile |
 | `npm run dev` | `tsc --watch` | Alias for watch mode |
 | `npm run runnable` | `tsx src/tools.ts` | Run tool calling examples |
+| `npm run lang` | `tsx src/langraph.ts` | Run LangGraph agentic workflow |
+
+---
+
+## 🧠 Architecture Deep Dive
+
+### 📂 `langraph.ts` - LangGraph Agentic Workflow
+
+**What is LangGraph?**
+
+LangGraph is a state management framework for building stateful, multi-actor applications with LLMs. It extends LangChain with the ability to create cyclical graphs, perfect for building agents that can:
+- Make decisions
+- Call tools
+- Loop back with results
+- Maintain conversation memory
+
+#### **How `langraph.ts` Works**
+
+```typescript
+// 1. STATE DEFINITION
+// MessagesAnnotation automatically manages message history
+const workFlow = new StateGraph(MessagesAnnotation)
+```
+
+The workflow consists of **nodes** (actions) and **edges** (connections):
+
+##### **🔷 Nodes:**
+
+1. **`agent` Node** - The LLM brain
+   ```typescript
+   async function callModel(state: typeof MessagesAnnotation.State) {
+       const response = await llm.invoke(state.messages)
+       return { messages: [response] };
+   }
+   ```
+   - Receives conversation state
+   - Decides whether to use tools or respond directly
+   - Returns updated state with new message
+
+2. **`tools` Node** - Tool executor
+   ```typescript
+   const toolNode = new ToolNode(tools)
+   ```
+   - Executes tools requested by the agent
+   - Returns tool results back to the workflow
+
+##### **🔷 Edges:**
+
+```typescript
+.addEdge("__start__", "agent")        // Entry point → agent
+.addEdge("tools", "agent")             // Tool results → back to agent
+.addConditionalEdges("agent", shouldContinue)  // Agent decides next step
+```
+
+##### **🔷 Conditional Routing:**
+
+```typescript
+function shouldContinue(state: ShouldContinueState): string {
+    const lastMessage = state.messages[state.messages.length - 1];
+    
+    // Check if agent wants to call tools
+    if ("tool_calls" in lastMessage && 
+        Array.isArray(lastMessage.tool_calls) && 
+        lastMessage.tool_calls?.length) {
+        return "tools";  // ✅ Route to tools node
+    }
+    return '__end__';    // ✅ End conversation
+}
+```
+
+**Decision Logic:**
+- If LLM response contains `tool_calls` → Go to `tools` node
+- If no tool calls → End workflow with `__end__`
+
+##### **🔷 Workflow Graph:**
+
+```
+┌─────────┐
+│ __start__│
+└────┬────┘
+     │
+     ▼
+┌─────────────┐
+│    agent    │──────► Check for tool calls
+└──────┬──────┘
+       │
+       ├──► Has tool_calls? ──► ┌───────┐
+       │                        │ tools │
+       │                        └───┬───┘
+       │                            │
+       │                            ▼
+       │           ◄────────────────┘
+       │           (Loop back to agent)
+       │
+       └──► No tool_calls? ──► __end__
+```
+
+##### **🔷 Memory/State Persistence:**
+
+```typescript
+const memorySaver = new MemorySaver()
+const app = workFlow.compile({checkpointer: memorySaver});
+
+// Invoke with thread_id for conversation memory
+await app.invoke(
+    { messages: [{ role: "user", content: userInput }] },
+    { configurable: { thread_id: '1' } }
+)
+```
+
+- **MemorySaver**: Stores conversation state in memory
+- **thread_id**: Groups messages by conversation thread
+- **Persistent Context**: Agent remembers previous interactions
+
+##### **🔷 Tools Available:**
+
+1. **`visitWbsite`** - Web content analyzer
+2. **`textToSpeech`** - Convert text → audio (Groq PlayAI)
+3. **`generateImage`** - Text → image (FLUX Unlimited)
+4. **`speechToText`** - Audio → text (Whisper v3)
+
+#### **Workflow Example:**
+
+```
+User: "Generate an image of a sunset and convert 'Hello' to speech"
+
+1. __start__ → agent
+2. agent analyzes query → finds 2 tool calls needed
+3. agent → tools (executeImage generation)
+4. tools → agent (with image result)
+5. agent → tools (execute TTS)
+6. tools → agent (with audio result)
+7. agent → __end__ (returns final response)
+```
+
+#### **Key Features:**
+
+✅ **Stateful Conversations** - Maintains context across turns  
+✅ **Automatic Tool Routing** - Agent decides when to use tools  
+✅ **Cyclical Execution** - Tools can loop back to agent  
+✅ **Memory Persistence** - Conversation history saved  
+✅ **Type Safety** - Full TypeScript typing  
+✅ **Error Handling** - Graceful failures  
+
+---
+
+### 📂 `tools.ts` - AI Tool Collection & Manual Orchestration
+
+**What is `tools.ts`?**
+
+This file implements a **manual tool calling approach** using LangChain's `RunnableLambda` for sequential tool execution without state graphs.
+
+#### **Architecture:**
+
+```typescript
+// 1. Define LLM with tools bound
+const chain = llm.bindTools([
+    multiply, 
+    tavilyTool, 
+    visitWbsiteTool, 
+    textToSpeech, 
+    generateImage, 
+    speechToText
+]);
+
+// 2. Create manual orchestration lambda
+const toolChain = RunnableLambda.from(async (userInput: string) => {
+    // Step 1: Get AI decision
+    const aiMsg = await chain.invoke([{
+        role: "user",
+        content: userInput,
+    }]);
+    
+    // Step 2: Manually check which tool was called
+    if (aiMsg.tool_calls && aiMsg.tool_calls.length > 0) {
+        const toolCall = aiMsg.tool_calls[0];
+        
+        // Step 3: Execute appropriate tool
+        if (toolCall.name === "multiply") {
+            toolMsgs = [await multiply.invoke(toolCall)];
+        } else if (toolCall.name === "tavily") {
+            toolMsgs = await tavilyTool.batch([toolCall]);
+        }
+        // ... other tools
+    }
+    
+    // Step 4: Send tool results back to LLM
+    const chainResult = await chain.invoke([
+        { role: "user", content: userInput },
+        aiMsg,
+        ...toolMsgs,
+    ]);
+    
+    return chainResult;
+});
+```
+
+#### **Tool Implementations:**
+
+##### **1. 🔢 `multiply` - Math Tool**
+```typescript
+const multiply = tool(
+    ({ a, b }: { a: number; b: number }): number => {
+        return a * b;
+    },
+    {
+        name: "multiply",
+        description: "Multiply two numbers",
+        schema: z.object({
+            a: z.number(),
+            b: z.number(),
+        }),
+    }
+);
+```
+**Use Case:** `"What is 25 multiplied by 4?"` → Returns `100`
+
+##### **2. 🌐 `tavilyTool` - Web Search**
+```typescript
+const tavilyTool = tool(
+    async ({ query }) => {
+        const result = await tavily.invoke({ query: query });
+        return result;
+    },
+    {
+        name: "tavily",
+        description: "Search the web using Tavily to find real-time information.",
+        schema: z.object({
+            query: z.string(),
+            title: z.string().describe("short title for the query"),
+        }),
+    }
+)
+```
+**Use Case:** `"What's the latest news about AI?"` → Returns real-time search results
+
+##### **3. 🌐 `visitWbsiteTool` - Website Analyzer**
+```typescript
+const visitWbsiteTool = tool(
+    async ({ query }) => {
+        const result = await chatGroq.invoke([{
+            "role": "user",
+            "content": query,
+        }]);
+        return result;
+    },
+    {
+        name: "visitWbsite",
+        description: "Use for visiting and analyzing specific websites.",
+        schema: z.object({
+            query: z.string(),
+        }),
+    }
+)
+```
+**Use Case:** `"What's on example.com?"` → Fetches and analyzes content
+
+##### **4. 🔊 `textToSpeech` - TTS with Groq PlayAI**
+```typescript
+const textToSpeech = tool(
+    async ({ text, voice = "Arista-PlayAI", model = "playai-tts", response_format = "wav" }) => {
+        // 1. Call Groq TTS API
+        const response = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: model,
+                input: text,
+                voice: voice,
+                response_format: response_format,
+            }),
+        });
+        
+        // 2. Generate smart filename using AI
+        const title = await titleORFileNameGenrate(text, 'fileName');
+        
+        // 3. Save audio file
+        const speechFile = path.resolve(`./genAudio/${title.content}.wav`);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.promises.writeFile(speechFile, buffer);
+        
+        return {
+            success: true,
+            message: "Speech generated successfully",
+            filePath: speechFile,
+            text: text,
+            voice: "Arista-PlayAI",
+            model: "playai-tts",
+            format: "wav"
+        }
+    },
+    {
+        name: "textToSpeech",
+        description: "🔉 Convert text to speech.",
+        schema: z.object({
+            text: z.string().describe("The text to convert to speech"),
+            voice: z.string().optional().default("Fritz-PlayAI"),
+            model: z.string().optional().default("playai-tts"),
+            response_format: z.enum(["wav", "mp3", "flac"]).optional().default("wav")
+        }),
+    }
+);
+```
+**Features:**
+- Groq PlayAI TTS integration
+- Multiple voice options
+- Format selection (wav, mp3, flac)
+- AI-generated filenames
+- Saves to `./genAudio/` directory
+
+**Use Case:** `"Convert 'Hello World' to speech"` → Creates `hello-world.wav`
+
+##### **5. 🎨 `generateImage` - FLUX Image Generation**
+```typescript
+const generateImage = tool(
+    async ({ prompt }) => {
+        // 1. Connect to Gradio FLUX Unlimited space
+        const { Client } = await import("@gradio/client");
+        const client = await Client.connect('NihalGazi/FLUX-Unlimited')
+        
+        // 2. Generate image
+        const result = await client.predict("/generate_image", {
+            prompt: prompt,
+            width: 512,
+            height: 512,
+            seed: 3,
+            randomize: true,
+            server_choice: "Google US Server"
+        });
+        
+        // 3. Download image
+        const imageUrl = result.data[0].url;
+        const imageResponse = await fetch(imageUrl);
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        
+        // 4. Generate smart filename
+        const title = await titleORFileNameGenrate(prompt, 'fileName');
+        
+        // 5. Save image
+        const imagePath = path.resolve(`./genImage/${title.content}.png`);
+        await fs.promises.writeFile(imagePath, imageBuffer);
+        
+        return {
+            success: true,
+            message: "Image generated successfully using FLUX Unlimited",
+            filePath: imagePath,
+            prompt: prompt,
+        }
+    }, 
+    {
+        name: "generateImage",
+        description: "Use for generating images.",
+        schema: z.object({
+            prompt: z.string().describe("The text prompt to generate the image from"),
+        }),
+    }
+)
+```
+**Features:**
+- FLUX Unlimited model via Gradio
+- 512x512 resolution
+- Random seed for variety
+- AI-generated filenames
+- Saves to `./genImage/` directory
+
+**Use Case:** `"Generate an image of a sunset over mountains"` → Creates `sunset-mountains.png`
+
+##### **6. 🎤 `speechToText` - Whisper v3 Transcription**
+```typescript
+const speechToText = tool(
+    async ({ filePath, language, prompt }) => {
+        const transcription = await groq.audio.transcriptions.create({
+            file: fs.createReadStream(filePath),
+            model: "whisper-large-v3",
+            prompt: prompt || "Specify context or spelling",
+            response_format: "verbose_json",
+            timestamp_granularities: ["word", "segment"],
+            language: language,
+            temperature: 0.0,
+        });
+        
+        return {
+            success: true,
+            message: "Audio transcribed successfully.",
+            text: transcription.text,
+            language: language || "en",
+            model: "whisper-large-v3-turbo",
+            format: "verbose_json"
+        }
+    }, 
+    {
+        name: "speechToText",
+        description: "Convert speech to text any language.",
+        schema: z.object({
+            filePath: z.string().describe("Path to the audio file to transcribe"),
+            language: z.string().optional().describe("Language of the audio (ISO 639-1 format)"),
+            prompt: z.string().optional().default("Specify context or spelling"),
+            temperature: z.number().min(0).max(1).optional(),
+            response_format: z.enum(["json", "text", "srt", "verbose_json"]).optional()
+        })
+    }
+)
+```
+**Features:**
+- Groq Whisper Large v3 model
+- Multi-language support
+- Timestamp granularities (word & segment level)
+- Context/spelling hints via prompt
+- Verbose JSON output with metadata
+
+**Use Case:** `"Transcribe audio.mp3"` → Returns transcribed text with timestamps
+
+#### **🔧 Smart Filename Generation:**
+
+```typescript
+async function titleORFileNameGenrate(query: string, titleType: String) {
+    const prompt = ChatPromptTemplate.fromMessages([
+        ["system", `You are an expert ${titleType} generator AI...`],
+        ["user", "Generate a ${titleType} for this query: {query}"]
+    ]);
+    const chain = prompt.pipe(llm);
+    const chainResult = await chain.invoke({ query, titleType });
+    return chainResult;
+}
+```
+
+**Examples:**
+- Input: `"hello world speech"` → Filename: `hello-world-speech`
+- Input: `"sunset over mountains"` → Filename: `sunset-mountains`
+- Uses snake_case or kebab-case
+- No spaces or special characters
+- SEO-friendly and descriptive
+
+---
+
+### 🆚 **`langraph.ts` vs `tools.ts` Comparison**
+
+| Feature | **langraph.ts** | **tools.ts** |
+|---------|----------------|-------------|
+| **Architecture** | State graph with nodes/edges | Manual tool orchestration |
+| **Routing** | Automatic via `shouldContinue` | Manual if/else checks |
+| **State Management** | Built-in with `StateGraph` | Manual state handling |
+| **Memory** | `MemorySaver` checkpointing | No built-in memory |
+| **Loops** | Cyclical (tools → agent → tools) | Linear execution |
+| **Complexity** | Lower - framework handles flow | Higher - manual control |
+| **Best For** | Complex multi-turn agents | Simple tool calling demos |
+| **Scalability** | High - easy to add nodes | Medium - requires code changes |
+| **Debugging** | Built-in tracing | Custom logging |
+| **Type Safety** | Strong typing | Strong typing |
+
+---
+
+### 🎯 **When to Use Which?**
+
+#### Use **`langraph.ts`** when:
+✅ Building production agents with memory  
+✅ Need cyclical tool calling (agent → tool → agent)  
+✅ Want automatic routing logic  
+✅ Require conversation history/context  
+✅ Building complex multi-step workflows  
+
+#### Use **`tools.ts`** when:
+✅ Learning tool calling basics  
+✅ Prototyping quick demos  
+✅ Need full manual control  
+✅ Simple one-shot tool calls  
+✅ Custom orchestration logic required  
+
+---
+
+## 🔧 Configuration
 
 ## 🛠️ Examples
 
