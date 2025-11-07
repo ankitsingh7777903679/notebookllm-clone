@@ -4,6 +4,17 @@ A TypeScript-based AI toolkit leveraging LangChain, OpenAI's GPT models, and Gro
 
 ## 🚀 Features
 
+### **Self-Correcting RAG (Retrieval-Augmented Generation)**
+- ✅ **Query Expansion**: Automatically expands user questions into 5 diverse search queries
+- ✅ **Reciprocal Rank Fusion**: Intelligent document ranking from multiple retrievals
+- ✅ **Document Grading**: LLM-based relevance filtering for retrieved documents
+- ✅ **Conditional Routing**: Smart path selection based on document quality
+- ✅ **Query Transformation**: Automatic query improvement for better results
+- ✅ **Web Search Fallback**: Tavily search integration when vector DB lacks relevant docs
+- ✅ **LangGraph State Management**: Advanced workflow orchestration with StateAnnotation
+- ✅ **Zero Hallucination**: Always grounds answers in retrieved context
+
+### **AI-Powered Chat & Tools**
 - **AI-Powered Chat**: Interact with documents using OpenAI's GPT-4o-mini model
 - **Tool Calling**: Execute functions and APIs through AI
   - ✅ **Multiplication**: Perform math calculations
@@ -11,10 +22,19 @@ A TypeScript-based AI toolkit leveraging LangChain, OpenAI's GPT models, and Gro
   - ✅ **Website Visitor**: Fetch and analyze web content
   - ✅ **Text-to-Speech**: Convert text to audio using Groq's PlayAI TTS
   - ✅ **Image Generation**: Create images using FLUX Unlimited model
-- **LangChain Integration**: Built with LangChain for robust AI workflows
+
+### **Email Agent with Human-in-the-Loop**
+- ✅ **Email Management**: List and retrieve emails with LangGraph
+- ✅ **Human Approval**: Middleware for agent action approval
+- ✅ **Memory Persistence**: MemorySaver for conversation context
+
+### **Infrastructure**
+- **LangChain Integration**: Built with LangChain v1.0+ for robust AI workflows
+- **LangGraph**: State-based workflow orchestration
 - **Runnable Chains**: Chain multiple operations together
 - **Structured Output**: Get typed responses with Zod schemas
 - **TypeScript**: Fully typed for better development experience
+- **Vector Database**: Pinecone integration with Cohere embeddings
 - **Smart File Naming**: AI-generated filenames for outputs
 
 ## 📋 Prerequisites
@@ -44,6 +64,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_API_BASE_URL=https://api.chatanywhere.tech/v1
 GROQ_API_KEY=your_groq_api_key_here
 TAVILY_API_KEY=your_tavily_api_key_here
+PINECONE_API_KEY=your_pinecone_api_key_here
+COHERE_API_KEY=your_cohere_api_key_here
 LANGSMITH_API_KEY=your_langsmith_api_key_here
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
@@ -76,6 +98,12 @@ npm start
 ### Run Specific Examples
 
 ```bash
+# Run Self-Correcting RAG system
+npm run qa
+
+# Run email agent with human-in-the-loop
+npm run hil
+
 # Run tool calling examples
 npm run runnable
 
@@ -96,18 +124,28 @@ npx tsx src/runnable.ts
 ```
 notebookllm-clone/
 ├── src/
-│   ├── index.ts          # Main entry point with structured output
-│   ├── langraph.ts       # LangGraph agentic workflow with state management
-│   ├── tools.ts          # AI tools: TTS, image gen, web search, math
-│   ├── runnable.ts       # Runnable chains and sequences
-│   └── tts.ts            # Text-to-speech utilities
-├── genAudio/             # Generated audio files output
-├── genImage/             # Generated image files output
-├── dist/                 # Compiled JavaScript output
-├── tsconfig.json         # TypeScript configuration
-├── package.json          # Project dependencies
-├── .env                  # Environment variables (not in repo)
-└── README.md             # This file
+│   ├── index.ts                # Main entry point with structured output
+│   ├── qa-overdoc.ts          # Self-Correcting RAG with LangGraph
+│   ├── Hil.ts                 # Email agent with human-in-the-loop
+│   ├── langraph.ts            # LangGraph agentic workflow
+│   ├── tools.ts               # AI tools: TTS, image gen, web search, math
+│   ├── runnable.ts            # Runnable chains and sequences
+│   ├── tts.ts                 # Text-to-speech utilities
+│   ├── util.ts                # Response formatters for JSON parsing
+│   ├── prompt/
+│   │   └── prompts.ts         # Prompt templates for RAG pipeline
+│   ├── lib/
+│   │   ├── retriever.ts       # Vector DB retrieval logic
+│   │   ├── RRF.ts             # Reciprocal Rank Fusion algorithm
+│   │   ├── generator.ts       # Answer generation
+│   │   └── ingestion-pipeline.ts  # Document ingestion to Pinecone
+├── genAudio/                  # Generated audio files output
+├── genImage/                  # Generated image files output
+├── dist/                      # Compiled JavaScript output
+├── tsconfig.json              # TypeScript configuration
+├── package.json               # Project dependencies
+├── .env                       # Environment variables (not in repo)
+└── README.md                  # This file
 ```
 
 ## 🔧 Configuration
@@ -130,6 +168,8 @@ The project uses the following TypeScript settings:
 | `OPENAI_API_BASE_URL` | OpenAI API base URL (or proxy) | Yes |
 | `GROQ_API_KEY` | Groq API key for text-to-speech | Yes |
 | `TAVILY_API_KEY` | Tavily API key for web search | Yes |
+| `PINECONE_API_KEY` | Pinecone API key for vector database | Yes (for RAG) |
+| `COHERE_API_KEY` | Cohere API key for embeddings | Yes (for RAG) |
 | `LANGSMITH_API_KEY` | LangSmith API key for tracing | Optional |
 | `LANGSMITH_TRACING` | Enable LangSmith tracing (true/false) | Optional |
 
@@ -141,6 +181,8 @@ The project uses the following TypeScript settings:
 | `npm start` | `node dist/index.js` | Run the compiled application |
 | `npm run watch` | `tsc --watch` | Watch mode with auto-recompile |
 | `npm run dev` | `tsc --watch` | Alias for watch mode |
+| `npm run qa` | `tsx src/qa-overdoc.ts` | Run Self-Correcting RAG system |
+| `npm run hil` | `tsx src/Hil.ts` | Run email agent with human approval |
 | `npm run runnable` | `tsx src/tools.ts` | Run tool calling examples |
 | `npm run lang` | `tsx src/langraph.ts` | Run LangGraph agentic workflow |
 
@@ -148,7 +190,166 @@ The project uses the following TypeScript settings:
 
 ## 🧠 Architecture Deep Dive
 
-### 📂 `langraph.ts` - LangGraph Agentic Workflow
+### � Self-Correcting RAG System (`qa-overdoc.ts`)
+
+**Advanced Retrieval-Augmented Generation with self-correction capabilities**
+
+The Self-Correcting RAG system is a sophisticated question-answering pipeline that ensures high-quality, grounded answers by implementing multiple layers of validation and fallback mechanisms.
+
+#### **System Architecture**
+
+```
+User Question
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ [RetrieverNode]                                             │
+│ • Expand query into 5 diverse questions                     │
+│ • Query vector database with each question                  │
+│ • Apply Reciprocal Rank Fusion (RRF) to merge results      │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ [gradeDocNode]                                              │
+│ • LLM grades each document for relevance                    │
+│ • Filter out non-relevant documents                         │
+│ • Return only high-quality, relevant context                │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ [Router] - Conditional Decision                             │
+│ • Check if filteredDoc is empty?                            │
+└─────────────────────────────────────────────────────────────┘
+    ↓                              ↓
+  YES (no docs)                  NO (has docs)
+    ↓                              ↓
+┌─────────────────────┐    ┌──────────────────┐
+│ [transformQuery]    │    │ [generate]       │
+│ • Improve query     │    │ • Generate answer│
+│ • Make it specific  │    │ • Use retrieved  │
+└─────────────────────┘    │   documents      │
+    ↓                      └──────────────────┘
+┌─────────────────────┐            ↓
+│ [webSearch]         │      Final AI Response
+│ • Tavily API search │
+│ • Get fresh docs    │
+└─────────────────────┘
+    ↓
+┌─────────────────────┐
+│ [generate]          │
+│ • Generate answer   │
+│ • Use web results   │
+└─────────────────────┘
+    ↓
+Final AI Response
+```
+
+#### **Key Components**
+
+##### 1️⃣ **Query Expansion (RetrieverNode)**
+- **Problem**: Single questions often miss relevant documents
+- **Solution**: Expand 1 question → 5 diverse questions using LLM
+- **Example**:
+  ```
+  Input: "Types of prompt engineering"
+  Output:
+  - "What are prompt engineering techniques?"
+  - "How to design effective AI prompts?"
+  - "Different methods for optimizing prompts"
+  - "Prompt engineering best practices"
+  - "Comparing zero-shot vs few-shot prompting"
+  ```
+
+##### 2️⃣ **Reciprocal Rank Fusion (RRF)**
+- **Problem**: Multiple searches return overlapping documents with different rankings
+- **Solution**: Intelligent fusion algorithm that:
+  - Combines rankings from all 5 searches
+  - Gives higher scores to documents appearing in multiple results
+  - Produces a single, optimized ranking
+
+##### 3️⃣ **LLM-Based Document Grading**
+- **Problem**: Vector similarity ≠ semantic relevance
+- **Solution**: LLM judges each document:
+  ```typescript
+  Question: "Types of prompt engineering"
+  Document: [content]
+  Grade: "relevant" or "not-relevant"
+  ```
+
+##### 4️⃣ **Conditional Routing**
+- **Decision Point**: Check document quality
+  - **Path A**: Has relevant docs → Generate answer immediately
+  - **Path B**: No relevant docs → Improve query + Web search
+
+##### 5️⃣ **Query Transformation**
+- **Purpose**: Improve vague queries for better web search results
+- **Example**:
+  ```
+  Before: "Types of prompt engineering"
+  After: "What are the different techniques and approaches used 
+         in prompt engineering for AI models?"
+  ```
+
+##### 6️⃣ **Web Search Fallback (Tavily)**
+- **Purpose**: Ensure we always have context (prevent "I don't know")
+- **When**: Triggered when vector DB has no relevant documents
+- **Result**: Fresh, web-sourced documents
+
+##### 7️⃣ **Answer Generation**
+- **Input**: Original question + Generated questions + Retrieved documents
+- **Process**: LLM synthesizes comprehensive answer
+- **Output**: Grounded, citation-ready response
+
+#### **State Management**
+
+```typescript
+StateAnnotation = {
+  messages: [],           // Conversation history
+  retrivedDoc: [],        // Documents from vector DB
+  filteredDoc: [],        // Relevant documents after grading
+  newQuery: "",           // Transformed query for web search
+  generateQuestion: [],   // 5 expanded questions
+  currentNode: "",        // Track workflow position
+  nextNode: ""            // Control flow routing
+}
+```
+
+#### **Benefits**
+
+✅ **Zero Hallucination**: Always grounds answers in retrieved context  
+✅ **High Recall**: Query expansion catches more relevant documents  
+✅ **High Precision**: Document grading filters noise  
+✅ **Adaptive**: Routes to web search when needed  
+✅ **Self-Correcting**: Improves queries that don't work  
+✅ **Traceable**: Full state visibility for debugging  
+
+#### **Usage**
+
+```bash
+npm run qa
+```
+
+**Example Output**:
+```
+start RetrieverNode...
+RetrieverNode...
+gradeDocNode...
+ --- TRANSFORM QUERY ---
+transformQuery... What are the different techniques and approaches...
+webSearch...
+generate...
+
+=== AI Response ===
+### Types of Prompt Engineering
+
+1. **In-Context Prompting**: Providing examples within the prompt...
+2. **Few-Shot Prompting**: Giving model a few examples to learn from...
+3. **Chain-of-Thought**: Breaking down reasoning into steps...
+...
+```
+
+---
+
+### �📂 `langraph.ts` - LangGraph Agentic Workflow
 
 **What is LangGraph?**
 
@@ -288,7 +489,179 @@ User: "Generate an image of a sunset and convert 'Hello' to speech"
 
 ---
 
-### 📂 `tools.ts` - AI Tool Collection & Manual Orchestration
+### � Email Agent with Human-in-the-Loop (`Hil.ts`)
+
+**Intelligent Email Management with Manual Approval**
+
+The Email Agent demonstrates a critical safety pattern in AI systems: **human-in-the-loop** (HIL) approval before executing sensitive actions.
+
+#### **Architecture**
+
+```
+User Request
+    ↓
+┌─────────────────────────────────────────┐
+│ [Agent Node]                            │
+│ • LLM analyzes request                  │
+│ • Decides which tool to call            │
+│ • Returns tool call(s)                  │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ [Human Approval Middleware]             │
+│ • Display tool call details             │
+│ • Ask: "Approve this action? (y/n)"     │
+│ • User types 'y' or 'n'                 │
+└─────────────────────────────────────────┘
+    ↓
+  Approved?
+    ↓              ↓
+   YES            NO
+    ↓              ↓
+┌──────────┐  ┌─────────────────┐
+│ [Tools]  │  │ Action cancelled│
+│ Execute  │  └─────────────────┘
+└──────────┘
+    ↓
+Return Results
+```
+
+#### **Key Components**
+
+##### 1️⃣ **Email Tools**
+
+```typescript
+const getEmail = tool(
+  async ({ emailId }) => {
+    // Retrieve specific email by ID
+    const email = dummyEmails.find(e => e.id === emailId);
+    return JSON.stringify(email, null, 2);
+  },
+  {
+    name: "getEmail",
+    description: "Get a specific email by ID",
+    schema: z.object({ emailId: z.string() })
+  }
+);
+
+const listEmails = tool(
+  async () => {
+    // List all available emails
+    return JSON.stringify(dummyEmails, null, 2);
+  },
+  {
+    name: "listEmails",
+    description: "List all emails"
+  }
+);
+```
+
+##### 2️⃣ **Dummy Data**
+
+```typescript
+const dummyEmails = [
+  { id: "1", from: "john.doe@example.com", subject: "Refund Request", body: "I'd like a refund..." },
+  { id: "2", from: "sarah.smith@example.com", subject: "Product Inquiry", body: "What's the price..." },
+  { id: "3", from: "mike.johnson@example.com", subject: "Feedback", body: "Great service!" },
+  { id: "4", from: "emma.wilson@example.com", subject: "Technical Issue", body: "App crashes..." },
+  { id: "5", from: "david.brown@example.com", subject: "Bulk Purchase", body: "Discount available?" }
+];
+```
+
+##### 3️⃣ **Human-in-the-Loop Middleware**
+
+```typescript
+const humanApprovalMiddleware: StepInterrupt = async (step) => {
+  if (step.action === 'tool-call') {
+    console.log("\n🤖 Agent wants to call tool:");
+    console.log(`Tool: ${step.toolCall.name}`);
+    console.log(`Args: ${JSON.stringify(step.toolCall.args)}`);
+    
+    // Ask for approval
+    const approved = await getUserApproval();
+    
+    if (!approved) {
+      throw new Error("Action cancelled by user");
+    }
+  }
+};
+```
+
+##### 4️⃣ **LangGraph State Machine**
+
+```typescript
+const workflow = new StateGraph(MessagesAnnotation)
+  .addNode("agent", callModel)
+  .addNode("tools", toolNode)
+  .addEdge(START, "agent")
+  .addConditionalEdges("agent", shouldContinue)
+  .addEdge("tools", "agent");
+
+const app = workflow.compile({
+  checkpointer: new MemorySaver(),
+  interruptBefore: ["tools"]  // Pause before tool execution
+});
+```
+
+#### **Workflow Example**
+
+```bash
+npm run hil
+```
+
+**Interaction:**
+```
+User: "List all emails"
+
+🤖 Agent wants to call tool:
+Tool: listEmails
+Args: {}
+
+⚠️  Approve this action? (y/n): y
+
+✅ Approved! Executing...
+
+Result:
+[
+  { id: "1", from: "john.doe@example.com", subject: "Refund Request" },
+  { id: "2", from: "sarah.smith@example.com", subject: "Product Inquiry" },
+  ...
+]
+
+---
+
+User: "Get email 3"
+
+🤖 Agent wants to call tool:
+Tool: getEmail
+Args: { emailId: "3" }
+
+⚠️  Approve this action? (y/n): n
+
+❌ Action cancelled by user
+```
+
+#### **Benefits**
+
+✅ **Safety First**: Prevents unintended actions  
+✅ **Transparency**: Shows exactly what agent wants to do  
+✅ **User Control**: Human can approve/reject each action  
+✅ **Audit Trail**: Log of all approval decisions  
+✅ **Flexible**: Can implement complex approval logic  
+✅ **Production-Ready**: Critical for sensitive operations (email, payments, data deletion)  
+
+#### **Use Cases**
+
+- 📧 Email management (sending, deleting, forwarding)
+- 💰 Financial transactions
+- 🗑️ Data deletion operations
+- 🔐 Permission changes
+- 📝 Contract signing
+- 🚀 Deployment actions
+
+---
+
+### �📂 `tools.ts` - AI Tool Collection & Manual Orchestration
 
 **What is `tools.ts`?**
 
@@ -707,9 +1080,12 @@ This project is licensed under the ISC License.
 ## 🙏 Acknowledgments
 
 - [LangChain](https://www.langchain.com/) for the AI framework
+- [LangGraph](https://langchain-ai.github.io/langgraph/) for state-based workflows
 - [OpenAI](https://openai.com/) for GPT-4o-mini model
 - [Groq](https://groq.com/) for PlayAI text-to-speech
 - [Tavily](https://tavily.com/) for web search API
+- [Pinecone](https://www.pinecone.io/) for vector database
+- [Cohere](https://cohere.com/) for embeddings
 - [FLUX Unlimited](https://huggingface.co/spaces/NihalGazi/FLUX-Unlimited) for image generation
 - [Zod](https://zod.dev/) for schema validation
 - [@gradio/client](https://www.gradio.app/) for Gradio API integration
@@ -722,9 +1098,44 @@ For support, please open an issue in the GitHub repository.
 ## 🔗 Related Resources
 
 - [LangChain Documentation](https://js.langchain.com/docs/)
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
 - [Groq Documentation](https://console.groq.com/docs)
 - [Tavily API Docs](https://docs.tavily.com/)
+- [Pinecone Documentation](https://docs.pinecone.io/)
+- [Cohere API Reference](https://docs.cohere.com/)
+
+---
+
+## 🚀 Quick Start Guide
+
+### Run Self-Correcting RAG
+```bash
+npm run qa
+```
+Ask questions and get grounded, hallucination-free answers!
+
+### Run Email Agent with Human Approval
+```bash
+npm run hil
+```
+Interact with emails with manual approval for each action.
+
+### Run Tool-Calling Agent
+```bash
+npm run lang
+```
+Multi-turn conversations with automatic tool routing.
+
+### Explore Individual Tools
+```bash
+npm run runnable
+```
+Test individual AI tools (TTS, image generation, web search).
+
+---
+
+**Built with ❤️ using LangChain, LangGraph, and TypeScript**
 
 ---
 
