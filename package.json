@@ -6,7 +6,7 @@
   "dependencies": {
     "@langchain/cohere": "^1.0.0",
     "@langchain/community": "^1.0.0",
-    "@langchain/core": "^1.0.1",
+    "@langchain/core": "^1.0.3",
     "@langchain/groq": "^1.0.0",
     "@langchain/langgraph": "^1.0.1",
     "@langchain/openai": "^1.0.0",
@@ -234,7 +234,7 @@
     "jws": "^4.0.0",
     "kareem": "^2.6.3",
     "kruptein": "^3.0.8",
-    "langchain": "^0.3.36",
+    "langchain": "^0.3.7",
     "langsmith": "^0.3.74",
     "leac": "^0.6.0",
     "llamaindex": "^0.11.29",
@@ -441,7 +441,9 @@
     "lang": "tsx lessons/langraph.ts",
     "embed": "tsx src/ingestion-pipeline.ts",
     "retriever": "tsx src/retriever.ts",
-    "generator": "tsx src/generator.ts"
+    "hil": "tsx src/Hil.ts",
+    "generator": "tsx src/generator.ts",
+    "qa": "tsx src/qa-overdoc.ts"
   },
   "repository": {
     "type": "git",
