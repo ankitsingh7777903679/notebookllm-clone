@@ -196,7 +196,7 @@ const webSearch = async (state: typeof StateAnnotation.State) => {
     const groq = new Groq({
         apiKey: process.env.GROQ_API_KEY,
     })
-
+    // console.log(`state.newQuery: ${state.newQuery}`);
     const response = await groq.chat.completions.create({
         model: "groq/compound",
         messages: [
