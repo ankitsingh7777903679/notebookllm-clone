@@ -431,7 +431,6 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc --watch",
@@ -443,7 +442,9 @@
     "retriever": "tsx src/retriever.ts",
     "hil": "tsx src/Hil.ts",
     "generator": "tsx src/generator.ts",
-    "qa": "tsx src/qa-overdoc.ts"
+    "qa": "tsx src/qa-overdoc.ts",
+    "atest": "tsx added/test.ts",
+    "summary": "tsx src/summary.ts"
   },
   "repository": {
     "type": "git",
