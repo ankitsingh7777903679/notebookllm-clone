@@ -14,6 +14,14 @@ A TypeScript-based AI toolkit leveraging LangChain, OpenAI's GPT models, and Gro
 - ✅ **LangGraph State Management**: Advanced workflow orchestration with StateAnnotation
 - ✅ **Zero Hallucination**: Always grounds answers in retrieved context
 
+### **Map-Reduce Document Summarization**
+- ✅ **Parallel Processing**: Fork pattern for concurrent document summarization
+- ✅ **Hierarchical Reduction**: Automatically collapses summaries into final output
+- ✅ **Web Scraping**: Load and summarize web pages with Cheerio
+- ✅ **Token-Aware**: Smart chunking to stay within API limits
+- ✅ **Recursive Collapse**: Multi-level summary reduction for large documents
+- ✅ **LangGraph Orchestration**: State-based workflow with conditional routing
+
 ### **AI-Powered Chat & Tools**
 - **AI-Powered Chat**: Interact with documents using OpenAI's GPT-4o-mini model
 - **Tool Calling**: Execute functions and APIs through AI
@@ -101,13 +109,13 @@ npm start
 # Run Self-Correcting RAG system
 npm run qa
 
+# Run Map-Reduce Document Summarization
+npm run summary
+
 # Run email agent with human-in-the-loop
 npm run hil
 
 # Run tool calling examples
-npm run runnable
-
-# Run runnable chains
 npm run runnable
 ```
 
@@ -126,6 +134,7 @@ notebookllm-clone/
 ├── src/
 │   ├── index.ts                # Main entry point with structured output
 │   ├── qa-overdoc.ts          # Self-Correcting RAG with LangGraph
+│   ├── summary.ts             # Map-Reduce Document Summarization
 │   ├── Hil.ts                 # Email agent with human-in-the-loop
 │   ├── langraph.ts            # LangGraph agentic workflow
 │   ├── tools.ts               # AI tools: TTS, image gen, web search, math
@@ -182,6 +191,7 @@ The project uses the following TypeScript settings:
 | `npm run watch` | `tsc --watch` | Watch mode with auto-recompile |
 | `npm run dev` | `tsc --watch` | Alias for watch mode |
 | `npm run qa` | `tsx src/qa-overdoc.ts` | Run Self-Correcting RAG system |
+| `npm run summary` | `tsx src/summary.ts` | Run Map-Reduce Document Summarization |
 | `npm run hil` | `tsx src/Hil.ts` | Run email agent with human approval |
 | `npm run runnable` | `tsx src/tools.ts` | Run tool calling examples |
 | `npm run lang` | `tsx src/langraph.ts` | Run LangGraph agentic workflow |
@@ -362,9 +372,282 @@ LangGraph is a state management framework for building stateful, multi-actor app
 #### **How `langraph.ts` Works**
 
 ```typescript
+```
+
+---
+
+### 📝 Map-Reduce Document Summarization (`summary.ts`)
+
+**Parallel Document Summarization with Hierarchical Reduction**
+
+The Map-Reduce Summarization system uses LangGraph's fork pattern to efficiently summarize large documents by processing chunks in parallel and then recursively merging the results.
+
+#### **System Architecture**
+
+```
+Input: 15 Document Chunks
+         ↓
+    [__start__]
+         ↓
+    [mapSummaries] ← FORK: Split into parallel tasks
+         ↓
+    ┌────┴────┬────┬────┬─────┬─────┬────────┬─────┐
+    ↓         ↓    ↓    ↓     ↓     ↓        ↓     ↓
+[genSum1] [genSum2] ... [genSum15]  ← 15 parallel LLM calls
+    ↓         ↓    ↓    ↓     ↓     ↓        ↓     ↓
+    └────┬────┴────┴────┴─────┴─────┴────────┴─────┘
+         ↓
+  [collectSummaries] ← JOIN: Merge results
+         ↓
+  [shouldCollapse?] ← Check total token count
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+  YES (>1000) NO (≤1000)
+    ↓         ↓
+[collapse]  [finalSummary]
+    ↓         ↓
+  Loop ←      │
+    └─────────┴──→ [__end__]
+```
+
+#### **Key Components**
+
+##### 1️⃣ **Document Loading & Chunking**
+
+```typescript
+// Load web page
+const loader = new CheerioWebBaseLoader(
+  'https://lilianweng.github.io/posts/2023-03-15-prompt-engineering'
+);
+const docs = await loader.load();
+
+// Split into chunks
+const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+});
+const allSplitDocs = await textSplitter.splitDocuments(docs);
+const splitDocs = allSplitDocs.slice(0, 15); // Process first 15 chunks
+```
+
+**Result**: 15 manageable document chunks from a large web page
+
+##### 2️⃣ **Fork Pattern - Parallel Summarization**
+
+```typescript
+const mapSummaries = (state: typeof OverallState.State) => {
+    // Create a Send object for each document chunk
+    return state.contents.map(
+        (content) => new Send("generateSummary", { content })
+    );
+};
+```
+
+**What happens:**
+- Takes 15 document chunks
+- Creates 15 parallel execution tasks
+- Each task processes one chunk independently
+- **This is the FORK!** 1 → 15 parallel nodes
+
+##### 3️⃣ **Parallel LLM Calls**
+
+```typescript
+const generateSummary = async (state: SummaryState) => {
+    const mapPrompt = ChatPromptTemplate.fromMessages([
+        ["user", "Write a concise summary of the following: \n\n{context}"],
+    ]);
+    const prompt = await mapPrompt.invoke({ context: state.content });
+    
+    // LLM call for this chunk
+    const response = await llm.invoke(prompt);
+    return { summaries: [String(response.content)] };
+}
+```
+
+**Result**: 15 summaries generated in parallel
+- Doc1 (1000 chars) → Summary1 (200 chars)
+- Doc2 (1000 chars) → Summary2 (200 chars)
+- ...
+- Doc15 (1000 chars) → Summary15 (200 chars)
+
+##### 4️⃣ **Collect & Join Results**
+
+```typescript
+const collectSummaries = async (state: typeof OverallState.State) => {
+    return {
+        collapsedSummaries: state.summaries.map(
+            (summary) => new Document({ pageContent: summary })
+        ),
+    };
+};
+```
+
+**Result**: All 15 parallel summaries merged back into one array
+
+##### 5️⃣ **Conditional Collapse Decision**
+
+```typescript
+async function shouldCollapse(state: typeof OverallState.State) {
+    let numTokens = await lengthFunction(state.collapsedSummaries);
+    if (numTokens > tokenMax) {  // tokenMax = 1000
+        return "collapseSummaries";  // Still too big, reduce more
+    } else {
+        return "generateFinalSummary";  // Small enough, finalize
+    }
+}
+```
+
+**Decision Logic:**
+- Count total tokens in all summaries
+- **If > 1000 tokens**: Need further reduction → `collapseSummaries`
+- **If ≤ 1000 tokens**: Ready for final summary → `generateFinalSummary`
+
+##### 6️⃣ **Hierarchical Reduction**
+
+```typescript
+const collapseSummaries = async (state: typeof OverallState.State) => {
+    // Split summaries into groups of ~1000 tokens each
+    const docLists = splitListOfDocs(
+        state.collapsedSummaries,
+        lengthFunction,
+        tokenMax
+    );
+    
+    // Merge each group
+    const results = [];
+    for (const docList of docLists) {
+        results.push(await collapseDocs(docList, _reduce));
+    }
+    return { collapsedSummaries: results };
+};
+
+async function _reduce(input: any): Promise<string> {
+    const reducePrompt = ChatPromptTemplate.fromMessages([
+        ["user", `Take these summaries and distill into a final summary: {docs}`]
+    ]);
+    const response = await llm.invoke(await reducePrompt.invoke({ docs: input }));
+    return String(response.content);
+}
+```
+
+**What happens:**
+- 15 summaries → Split into 3 groups of 5
+- **3 LLM calls** to merge each group
+- Result: 3 merged summaries
+- **Loops back** to `shouldCollapse`
+- Repeats until small enough
+
+##### 7️⃣ **Final Summary Generation**
+
+```typescript
+const generateFinalSummary = async (state: typeof OverallState.State) => {
+    const response = await _reduce(state.collapsedSummaries);
+    return { finalSummary: response };
+};
+```
+
+**Result**: One comprehensive final summary of the entire document
+
+#### **Complete LLM Call Flow**
+
+```
+Example with 15 chunks:
+
+1. Fork Phase:
+   └─ 15 parallel generateSummary calls
+   
+2. Reduce Phase (if needed):
+   └─ 15 summaries split into 3 groups
+   └─ 3 collapse LLM calls → 3 merged summaries
+   └─ Check again: still > 1000 tokens?
+      └─ If YES: 1 more collapse call → 1 summary
+      └─ If NO: proceed to final
+   
+3. Final Phase:
+   └─ 1 generateFinalSummary call
+
+Total: 15 + 3 + 1 = 19 LLM calls
+```
+
+#### **State Management**
+
+```typescript
+const OverallState = Annotation.Root({
+    contents: Annotation<string[]>,        // Original document chunks
+    summaries: Annotation<string[]>({      // Individual summaries
+        reducer: (state, update) => state.concat(update),  // Accumulate
+    }),
+    collapsedSummaries: Annotation<Document[]>,  // Merged summaries
+    finalSummary: Annotation<string>,            // Final output
+});
+```
+
+#### **Benefits**
+
+✅ **Parallel Processing**: 15 chunks summarized simultaneously (faster)  
+✅ **Token Efficiency**: No single request exceeds API limits  
+✅ **Hierarchical Quality**: Multiple reduction passes improve synthesis  
+✅ **Scalable**: Works with 10 or 1000+ document chunks  
+✅ **Automatic Adaptation**: Recursively reduces until size is optimal  
+✅ **Web Integration**: Direct web page scraping with Cheerio  
+
+#### **Usage**
+
+```bash
+npm run summary
+```
+
+**Example Output:**
+```
+[ 'generateSummary' ]  ← 15 times (parallel)
+[ 'collectSummaries' ]
+[ 'collapseSummaries' ]  ← If needed
+[ 'generateFinalSummary' ]
+
+Final sum: {
+  finalSummary: "This document explores prompt engineering techniques 
+  including zero-shot, few-shot, and chain-of-thought prompting..."
+}
+```
+
+#### **Configuration Options**
+
+```typescript
+// Adjust chunk size
+const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,      // Characters per chunk
+    chunkOverlap: 200,    // Overlap between chunks
+});
+
+// Limit number of chunks processed
+const splitDocs = allSplitDocs.slice(0, 15);  // Process first 15
+
+// Adjust collapse threshold
+let tokenMax = 1000;  // Collapse if summaries > 1000 tokens
+```
+
+---
+
+### 📂 `langraph.ts` - LangGraph Agentic Workflow
+
+**What is LangGraph?**
+
+LangGraph is a state management framework for building stateful, multi-actor applications with LLMs. It extends LangChain with the ability to create cyclical graphs, perfect for building agents that can:
+- Make decisions
+- Call tools
+- Loop back with results
+- Maintain conversation memory
+
+#### **How `langraph.ts` Works**
+
+```typescript
 // 1. STATE DEFINITION
 // MessagesAnnotation automatically manages message history
 const workFlow = new StateGraph(MessagesAnnotation)
+```
+
+The workflow consists of **nodes** (actions) and **edges** (connections):
 ```
 
 The workflow consists of **nodes** (actions) and **edges** (connections):
@@ -1114,6 +1397,12 @@ For support, please open an issue in the GitHub repository.
 npm run qa
 ```
 Ask questions and get grounded, hallucination-free answers!
+
+### Run Map-Reduce Document Summarization
+```bash
+npm run summary
+```
+Summarize large web pages with parallel processing and hierarchical reduction!
 
 ### Run Email Agent with Human Approval
 ```bash
