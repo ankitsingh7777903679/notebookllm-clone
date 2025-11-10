@@ -18,8 +18,8 @@ import zodToJsonSchema from "zod-to-json-schema";
 import { queryVectorDB } from "./retriever";
 import { parse } from "path";
 import { reciprocalRankFusion } from "./RRF";
-import { extrectMessage, gradeDocResponseFormater, questionResponseFormater, TranformResponseFormatter } from "./util";
-import { generate_question_prompt, grade_doc_prompt, response_generator_prompt, transform_query_prompt } from "./prompt/prompts";
+import { extrectMessage, gradeDocResponseFormater, questionResponseFormater, TranformResponseFormatter } from "../util";
+import { generate_question_prompt, grade_doc_prompt, response_generator_prompt, transform_query_prompt } from "../prompt/prompts";
 import { TavilySearch } from "@langchain/tavily";
 dotenv.config();
 const llm = new ChatGroq({

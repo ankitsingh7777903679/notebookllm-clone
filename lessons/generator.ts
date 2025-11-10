@@ -1,35 +1,35 @@
-import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
-import { ChatOpenAI } from "@langchain/openai";
-import { ChatMessagePromptTemplate, ChatPromptTemplate, PromptTemplate } from "@langchain/core/prompts"
-import { DocumentInterface } from "@langchain/core/documents";
-import dotenv from "dotenv";
-import { ChatGroq } from "@langchain/groq";
-import { Document } from "@langchain/core/documents";
+// import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
+// import { ChatOpenAI } from "@langchain/openai";
+// import { ChatMessagePromptTemplate, ChatPromptTemplate, PromptTemplate } from "@langchain/core/prompts"
+// import { DocumentInterface } from "@langchain/core/documents";
+// import dotenv from "dotenv";
+// import { ChatGroq } from "@langchain/groq";
+// import { Document } from "@langchain/core/documents";
 import z from "zod";
+// // import { formatDocumentsAsString } from "langchain/util/document";
 // import { formatDocumentsAsString } from "langchain/util/document";
-import { formatDocumentsAsString } from "langchain/util/document";
 
-import {response_generator_prompt} from "./prompts";
+// // import {response_generator_prompt} from "./prompts";
 
-import zodToJsonSchema from "zod-to-json-schema";
-import { queryVectorDB } from "./retriever";
-import { parse } from "path";
-import {reciprocalRankFusion} from "./RRF";
-dotenv.config();
+// // import zodToJsonSchema from "zod-to-json-schema";
+// // import { queryVectorDB } from "../src/pipelines/retriever";
+// // import { parse } from "path";
+// // import {reciprocalRankFusion} from "../src/pipelines/RRF";
+// dotenv.config();
 
-const llm = new ChatOpenAI({
-    model: 'gpt-4o-mini',
-    configuration: {
-        apiKey: process.env.OPENAI_API_KEY,
-        baseURL: process.env.OPENAI_API_BASE_URL,
+// const llm = new ChatOpenAI({
+//     model: 'gpt-4o-mini',
+//     configuration: {
+//         apiKey: process.env.OPENAI_API_KEY,
+//         baseURL: process.env.OPENAI_API_BASE_URL,
 
 
-    }
-})
-const groqLlm = new ChatGroq({
-    model: 'openai/gpt-oss-20b',
-    apiKey: process.env.GROQ_API_KEY,
-})
+//     }
+// })
+// const groqLlm = new ChatGroq({
+//     model: 'openai/gpt-oss-20b',
+//     apiKey: process.env.GROQ_API_KEY,
+// })
 
 // const query = "What is prompt engineering?";
 

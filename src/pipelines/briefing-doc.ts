@@ -41,14 +41,14 @@ const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 
 
 // Option 2: Groq (Daily limit reached - wait 13 minutes)
 const llm = new ChatGroq({
-    model: 'moonshotai/kimi-k2-instruct',
+    model: 'openai/gpt-oss-120b',
     apiKey: process.env.GROQ_API_KEY,
     temperature: 0.7,
     
 })
 
 const llmCollapseSummary = new ChatGroq({
-    model: 'moonshotai/kimi-k2-instruct',
+    model: 'moonshotai/kimi-k2-instruct-0905',
     apiKey: process.env.GROQ_API_KEY,
     temperature: 0.7,
     
@@ -76,33 +76,34 @@ async function lengthFunction(documents: Document[]) {
 const OverallState = Annotation.Root({
     contents: Annotation<string[]>,
     // Notice here we pass a reducer function.
-    // This is because we want combine all the summaries we generate
+    // This is because we want combine all the briefings we generate
     // from individual nodes back into one list - this is essentially
     // the "reduce" part
-    studyGuides: Annotation<string[]>({
+    briefings: Annotation<string[]>({
         reducer: (state, update) => state.concat(update),
     }),
-    collapsedSummaries: Annotation<Document[]>,
-    finalSummary: Annotation<string>,
+    collapsedBriefings: Annotation<Document[]>,
+    finalBriefing: Annotation<string>,
 });
 
 // This will be the state of the node that we will "map" all
-// documents to in order to generate summaries
-interface StudyGuideChunkState {
+// documents to in order to generate briefings
+interface BriefingChunkState {
     content: string;
 }
-// Here we generate a summary, given a document
-const generateStudyGuideChunk = async (
-    state: StudyGuideChunkState
-): Promise<{ studyGuides: string[] }> => {
+// Here we generate a briefing, given a document
+const generateBriefingChunk = async (
+    state: BriefingChunkState
+): Promise<{ briefings: string[] }> => {
     const mapPrompt = ChatPromptTemplate.fromMessages([
         [
             "user",
-                      `Create structured study notes for the following text. Include:
-- Key concepts / definitions
-- Examples or illustrations
-- Important points
-Format as bullet points: \n\n{context}`,
+                      `Create a professional briefing document for the following text.
+Include:
+- Summary of main ideas
+- Key takeaways
+- Actionable insights or recommendations
+Format as concise, clear paragraphs: \n\n{context}` ,
 
 
 
@@ -110,23 +111,23 @@ Format as bullet points: \n\n{context}`,
     ]);
     const prompt = await mapPrompt.invoke({ context: state.content });
     const response = await llm.invoke(prompt);
-    return { studyGuides: [String(response.content)] };
+    return { briefings: [String(response.content)] };
 }
 
 // Here we define the logic to map out over the documents
 // We will use this an edge in the graph
-const mapStudyGuides = (state: typeof OverallState.State) => {
+const mapBriefings = (state: typeof OverallState.State) => {
     // We will return a list of `Send` objects
     // Each `Send` object consists of the name of a node in the graph
     // as well as the state to send to that node
     return state.contents.map(
-        (content) => new Send("generateStudyGuideChunk", { content })
+        (content) => new Send("generateBriefingChunk", { content })
     );
 };
-const collectStudyGuides = async (state: typeof OverallState.State) => {
+const collectBriefings = async (state: typeof OverallState.State) => {
     return {
-        collapsedSummaries: state.studyGuides.map(
-            (summary) => new Document({ pageContent: summary })
+        collapsedBriefings: state.briefings.map(
+            (briefing: string) => new Document({ pageContent: briefing })
         ),
     };
 };
@@ -141,11 +142,11 @@ async function _reduce(input: any): Promise<string> {
     const reducePrompt = ChatPromptTemplate.fromMessages([
         ["user",
 
-            `The following are study guide chunks:
+            `The following are briefing document chunks:
 {docs}
 
-Distill these into a single cohesive study guide.
-Maintain key concepts, examples, and main points.`,
+Distill these into a single cohesive briefing document.
+Maintain main ideas, key takeaways, and actionable insights.`,
 
         ],
     
@@ -156,9 +157,9 @@ Maintain key concepts, examples, and main points.`,
     return String(response.content);
 }
 
-const collapseStudyGuides = async (state: typeof OverallState.State) => {
+const collapseBriefings = async (state: typeof OverallState.State) => {
     const docLists = splitListOfDocs(
-        state.collapsedSummaries,
+        state.collapsedBriefings,
         lengthFunction,
         tokenMax
 
@@ -167,44 +168,44 @@ const collapseStudyGuides = async (state: typeof OverallState.State) => {
     for (const docList of docLists) {
         results.push(await collapseDocs(docList, _reduce));
     }
-    return { collapsedSummaries: results };
+    return { collapsedBriefings: results };
 };
 
 // This represents a conditional edge in the graph that determines
-// if we should collapse the summaries or not
+// if we should collapse the briefings or not
 async function shouldCollapse(state: typeof OverallState.State) {
-    let numTokens = await lengthFunction(state.collapsedSummaries);
+    let numTokens = await lengthFunction(state.collapsedBriefings);
     if (numTokens > tokenMax) {
-        return "collapseStudyGuides";
+        return "collapseBriefings";
     } else {
-        return "generateFinalStudyGuide";
+        return "generateFinalBriefing";
     }
 }
 
-// Here we will generate the final summary
-const generateFinalStudyGuide = async (state: typeof OverallState.State) => {
-    const response = await _reduce(state.collapsedSummaries);
-    return { finalSummary: response };
+// Here we will generate the final briefing
+const generateFinalBriefing = async (state: typeof OverallState.State) => {
+    const response = await _reduce(state.collapsedBriefings);
+    return { finalBriefing: response };
 
 };
 
 // Construct the graph
 const graph = new StateGraph(OverallState)
-    .addNode("generateStudyGuideChunk", generateStudyGuideChunk)
-    .addNode("collectStudyGuides", collectStudyGuides)
-    .addNode("collapseStudyGuides", collapseStudyGuides)
-    .addNode("generateFinalStudyGuide", generateFinalStudyGuide)
-    .addConditionalEdges("__start__", mapStudyGuides, ["generateStudyGuideChunk"])
-    .addEdge("generateStudyGuideChunk", "collectStudyGuides")
-    .addConditionalEdges("collectStudyGuides", shouldCollapse, [
-        "collapseStudyGuides",
-        "generateFinalStudyGuide",
+    .addNode("generateBriefingChunk", generateBriefingChunk)
+    .addNode("collectBriefings", collectBriefings)
+    .addNode("collapseBriefings", collapseBriefings)
+    .addNode("generateFinalBriefing", generateFinalBriefing)
+    .addConditionalEdges("__start__", mapBriefings, ["generateBriefingChunk"])
+    .addEdge("generateBriefingChunk", "collectBriefings")
+    .addConditionalEdges("collectBriefings", shouldCollapse, [
+        "collapseBriefings",
+        "generateFinalBriefing",
     ])
-    .addConditionalEdges("collapseStudyGuides", shouldCollapse, [
-        "collapseStudyGuides",
-        "generateFinalStudyGuide",
+    .addConditionalEdges("collapseBriefings", shouldCollapse, [
+        "collapseBriefings",
+        "generateFinalBriefing",
     ])
-    .addEdge("generateFinalStudyGuide", "__end__");
+    .addEdge("generateFinalBriefing", "__end__");
 
 const app = graph.compile();
 
@@ -217,17 +218,17 @@ const app = graph.compile();
 //     }
 // )
 
-let finalStudyGuide = null;
+let finalBriefing = null;
 
 for await (const step of await app.stream(
     { contents: splitDocs.map((doc) => doc.pageContent) },
     { recursionLimit: 10 }  // Increased from 5
 )) {
     console.log(Object.keys(step));
-    if (step.hasOwnProperty("generateFinalStudyGuide")) {
-        finalStudyGuide = step.generateFinalStudyGuide;
+    if (step.hasOwnProperty("generateFinalBriefing")) {
+        finalBriefing = step.generateFinalBriefing;
     }
 }
 
-console.log('Final study guide : ', finalStudyGuide)
+console.log('Final briefing document : ', finalBriefing)
 

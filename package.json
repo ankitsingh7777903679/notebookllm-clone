@@ -262,6 +262,7 @@
     "mime-db": "^1.54.0",
     "mime-types": "^3.0.1",
     "mimic-response": "^3.1.0",
+    "mind-elixir": "^5.3.5",
     "minimalistic-assert": "^1.0.1",
     "minimatch": "^3.1.2",
     "minimist": "^1.2.8",
@@ -434,7 +435,7 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc --watch",
-    "dev": "tsc --watch",
+    "dev": "nodemon --exec tsx src/index.ts",
     "runnable": "tsx lessons/tools.ts",
     "tts": "tsx lessons/tts.ts",
     "lang": "tsx lessons/langraph.ts",
@@ -442,10 +443,13 @@
     "retriever": "tsx src/retriever.ts",
     "hil": "tsx src/Hil.ts",
     "generator": "tsx src/generator.ts",
-    "qa": "tsx src/qa-overdoc.ts",
+    "qa": "tsx src/pipelines/qa-overdoc.ts",
     "atest": "tsx added/test.ts",
-    "summary": "tsx src/summary.ts",
-    "stug": "tsx src/study-guide.ts"
+    "summary": "tsx src/pipelines/summary.ts",
+    "stug": "tsx src/pipelines/study-guide.ts",
+    "brief": "tsx src/pipelines/briefing-doc.ts",
+    "faq": "tsx src/pipelines/generate-faq.ts",
+    "mindmap": "tsx src/pipelines/mind-map.ts"
   },
   "repository": {
     "type": "git",
@@ -460,6 +464,8 @@
   "homepage": "https://github.com/ankitsingh7777903679/notebookllm-clone#readme",
   "devDependencies": {
     "@gradio/client": "^2.0.0-dev.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
     "or": "^0.2.0",
     "tsx": "^4.20.6"
   }
