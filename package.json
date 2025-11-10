@@ -444,7 +444,8 @@
     "generator": "tsx src/generator.ts",
     "qa": "tsx src/qa-overdoc.ts",
     "atest": "tsx added/test.ts",
-    "summary": "tsx src/summary.ts"
+    "summary": "tsx src/summary.ts",
+    "stug": "tsx src/study-guide.ts"
   },
   "repository": {
     "type": "git",
