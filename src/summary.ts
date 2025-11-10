@@ -7,9 +7,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { CheerioWebBaseLoader } from "@langchain/community/document_loaders/web/cheerio";
 import { ChatGroq } from "@langchain/groq";
-import { ChatFireworks } from "@langchain/community/chat_models/fireworks";
 import "dotenv/config"
-import { a } from "node_modules/js-tiktoken/dist/core-71f59181";
 
 const loader = new CheerioWebBaseLoader('https://lilianweng.github.io/posts/2023-03-15-prompt-engineering');
 const docs = await loader.load();
@@ -19,16 +17,16 @@ const textSplitter = new RecursiveCharacterTextSplitter({
 });
 const allSplitDocs = await textSplitter.splitDocuments(docs);
 // Limit to first 10 documents to reduce API calls
-const splitDocs = allSplitDocs.slice(0, 25);
+const splitDocs = allSplitDocs.slice(0, 10);
 
 const llm = new ChatGroq({
-    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    model: 'moonshotai/kimi-k2-instruct',
     apiKey: process.env.GROQ_API_KEY,
     temperature: 0.7,
 
 })
-const llmCollespSummary = new ChatGroq({
-    model: 'groq/compound-mini',
+const llmCollapseSummary = new ChatGroq({
+    model: 'moonshotai/kimi-k2-instruct-0905',
     apiKey: process.env.GROQ_API_KEY,
     temperature: 0.7,
 
@@ -118,7 +116,7 @@ async function _reduce(input: any): Promise<string> {
         ]
     ]);
     const prompt = await reducePrompt.invoke({ docs: input });
-    const response = await llmCollespSummary.invoke(prompt);
+    const response = await llmCollapseSummary.invoke(prompt);
     return String(response.content);
 }
 
