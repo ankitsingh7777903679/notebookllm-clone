@@ -345,10 +345,7 @@ async function main() {
         let toolMsgs = [];
         if (aiMsg.tool_calls && aiMsg.tool_calls.length > 0) {
             const toolCall = aiMsg.tool_calls[0];
-
             // Print the query from the tool call
-
-
             if (toolCall.name === "multiply") {
                 console.log("Executing multiply tool with args:", toolCall.args);
                 toolMsgs = [await multiply.invoke(toolCall)];
