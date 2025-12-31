@@ -226,7 +226,7 @@ const tools: any[] = [visitWbsiteTool, textToSpeech, generateImage, speechToText
 const toolNode = new ToolNode(tools)
 
 const llm = new ChatOpenAI({
-    model: 'gpt-5-mini',
+    model: 'gpt-4o-mini',
     configuration: {
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: process.env.OPENAI_API_BASE_URL,
