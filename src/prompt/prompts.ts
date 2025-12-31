@@ -55,8 +55,8 @@ relevant to the question.`
 
 
 
-export const transform_query_prompt = ChatPromptTemplate. fromTemplate(
-`You are generating a question that is well optimized for semantic search retrieval.
+export const transform_query_prompt = ChatPromptTemplate.fromTemplate(
+    `You are generating a question that is well optimized for semantic search retrieval.
 Look at the input and try td reason about the underlying sematic intent / meaning.
 Here is the initial question:
 \n------\n
