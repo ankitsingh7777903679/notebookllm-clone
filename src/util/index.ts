@@ -1,8 +1,6 @@
 import zodToJsonSchema from "zod-to-json-schema";
 import z from "zod";
 
-
-
 export function extrectMessage(state: any, messageType: 'ai' | 'human') {
     const lastMessage = state.messages
         .filter((m: any) => m.getType() === messageType)
@@ -22,7 +20,6 @@ export const questionResponseFormater = {
         )
     }
 } as any
-
 
 export const gradeDocResponseFormater = {
     response_format: {
