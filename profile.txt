@@ -1,0 +1,55 @@
+# Project Profile: NotebookLLM Clone
+
+## Overview
+This project aims to replicate the core functionality of Google's NotebookLLM,
+a powerful tool that combines note-taking with large language models (LLMs).
+The goal is to create a personalized AI research assistant that can
+synthesize information from user-uploaded documents.
+
+## Core Features
+1.  **Document Ingestion**:
+    - Support for PDF, TXT, and Markdown file uploads.
+    - Text extraction and preprocessing pipelines.
+    - Chunking strategies for optimal context window usage.
+
+2.  **Vector Database Integration**:
+    - Storage of document embeddings for semantic search.
+    - Efficient retrieval of relevant context based on user queries.
+    - Support for local or cloud-based vector stores (e.g., Chroma, Pinecone).
+
+3.  **LLM Integration**:
+    - Interface with open-source models (e.g., Llama 3, Mistral) or APIs (OpenAI, Gemini).
+    - Retrieval-Augmented Generation (RAG) architecture.
+    - Context-aware answer generation grounded in source material.
+
+4.  **User Interface**:
+    - Clean, intuitive dashboard for managing notebooks.
+    - Chat interface for querying specific documents or entire collections.
+    - Source citation features to link answers back to original text.
+
+5.  **Audio Overview (Podcast Mode)**:
+    - Generation of audio summaries simulating a conversation between two hosts.
+    - Text-to-Speech (TTS) integration for dynamic audio output.
+
+## Technical Stack
+-   **Backend**: Python (FastAPI or Flask)
+-   **Frontend**: React, Streamlit, or Next.js
+-   **AI/ML**: LangChain or LlamaIndex for orchestration.
+-   **Embeddings**: HuggingFace sentence-transformers.
+-   **Deployment**: Docker containers for portability.
+
+## Development Goals
+-   Achieve high accuracy in RAG responses.
+-   Minimize hallucination by strictly grounding answers.
+-   Optimize latency for real-time interaction.
+-   Ensure data privacy by allowing local model execution.
+
+## Future Roadmap
+-   Multi-modal support (images and charts analysis).
+-   Collaborative features for shared notebooks.
+-   Export functionality for generated summaries and notes.
+-   Integration with external knowledge bases (Notion, Google Drive).
+
+This clone serves as both a learning resource and a functional tool for
+researchers, students, and developers interested in the intersection of
+knowledge management and generative AI.
