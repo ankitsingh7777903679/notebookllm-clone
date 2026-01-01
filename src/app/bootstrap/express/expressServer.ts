@@ -202,12 +202,6 @@ export function expressServer(app: Express, PORT: number) {
     });
 
 
-
-
-
-
-
-
     app.listen(PORT, () => {
         console.log(`Server is running on http://localhost:8000`);
     });
