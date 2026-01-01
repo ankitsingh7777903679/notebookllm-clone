@@ -1,4 +1,5 @@
 import { ChatGroq } from "@langchain/groq";
+import { ChatOpenAI } from "@langchain/openai";
 export class LLM {
     private static instance: ChatGroq;
     // Private constructor to prevent direct instantiation 
@@ -11,7 +12,7 @@ export class LLM {
             }
             LLM.instance = new ChatGroq({
                 apiKey: process.env.GROQ_API_KEY,
-                model: "mixtral-8x7b-32768", // Change to your preferred Groq model
+                model: "moonshotai/kimi-k2-instruct-0905", // Change to your preferred Groq model
                 temperature: 0.7,
             });
         }
