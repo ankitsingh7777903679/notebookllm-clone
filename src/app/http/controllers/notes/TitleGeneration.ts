@@ -10,6 +10,7 @@ const generate_title_prompt = PromptTemplate.fromTemplate(`
 You are a helpful assistant that generates concise and clear titles. 
 Based on the following document content, create a single title that 
 captures the main theme or subject of the document. 
+Return the result as a JSON object with a "title" key.
 
 Document Content: 
 {document}    
