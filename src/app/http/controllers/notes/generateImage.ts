@@ -53,17 +53,22 @@ import fetch from "node-fetch"
 
 
 export const generateImage = async (prompt: string, path: string, fileName: string, cb: (fileName: string) => void) => {
-    const API_KEY = process.env.GEMINI_API_KEY
+    const API_KEY = process.env.FIREWORKS_API_KEY
+
+    if (!API_KEY) {
+        console.warn("FIREWORKS_API_KEY is missing. Skipping image generation.");
+        return;
+    }
 
     const response = await fetch("https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "image/jpeg",
-            "Authorization": "Bearer $API_KEY"
+            "Authorization": `Bearer ${API_KEY}`
         },
         body: JSON.stringify({
-            prompt: "",
+            prompt: prompt,
             aspect_ratio: "16:9",
             guidance_scale: 3.5,
             num_inference_steps: 30,
@@ -71,14 +76,25 @@ export const generateImage = async (prompt: string, path: string, fileName: stri
         }),
     });
 
-    const result = await response.json();
-    const requestId = result.request_id;
-
-    if (!requestId) {
-        throw new Error("No request ID returned");
+    if (!response.ok) {
+        throw new Error(`Image generation failed: ${response.statusText}`);
     }
 
-    console.log("Request submitted with ID:", requestId);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    fs.writeFile(`${path}/${fileName}.png`, buffer, () => {
+        cb(`${path}/${fileName}.png`)
+        console.log('Image saved as png');
+    });
+    return;
+
+    /* 
+    // The previous code was expecting a JSON response with a request ID for polling, 
+    // but the endpoint returns the image binary directly when Accept: image/jpeg is set.
+    
+    const result = await response.json();
+    const requestId = result.request_id;
+    ...
+    */
 
     // Step 2: Poll for the result
     const resultEndpoint = "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro/get_result";
@@ -91,7 +107,7 @@ export const generateImage = async (prompt: string, path: string, fileName: stri
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "image/jpeg",
-                "Authorization": "Bearer $API_KEY"
+                "Authorization": `Bearer ${API_KEY}`
             },
             body: JSON.stringify({ id: requestId })
         });

@@ -18,3 +18,4 @@ pnpm-debug.log*
 /.parcel-cache
 /.next
 .turbo
+/public/uploads

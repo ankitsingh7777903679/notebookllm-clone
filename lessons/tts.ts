@@ -9,7 +9,7 @@ dotenv.config();
 
 const groq = new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    model: "mixtral-8x7b-32768", // You can change this to other Groq models
+    model: "llama3-70b-8192", // You can change this to other Groq models
 });
 
 // TTS Tool using Groq (though Groq doesn't have native TTS, we'll use it for text processing)
@@ -134,7 +134,7 @@ const openaiTTS = tool(
 async function main() {
     const llm = new ChatGroq({
         apiKey: process.env.GROQ_API_KEY,
-        model: "mixtral-8x7b-32768",
+        model: "llama3-70b-8192",
     });
 
     // Bind TTS tools to the LLM

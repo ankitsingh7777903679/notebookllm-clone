@@ -25,7 +25,12 @@ export async function createNote(req: Request, res: Response, next: NextFunction
 
         const llm = LLM.getInstance()
 
-        const docSplit = await loadDocument(`${uploadsDir}/${req.file?.filename}`, 'txt')
+        const ext = path.extname(req.file.filename).toLowerCase();
+        let docType: 'pdf' | 'html' | 'txt' = 'txt';
+        if (ext === '.pdf') docType = 'pdf';
+        else if (ext === '.html' || ext === '.htm') docType = 'html';
+
+        const docSplit = await loadDocument(`${uploadsDir}/${req.file?.filename}`, docType)
 
         const title = await generateTitle(llm, docSplit)
 
