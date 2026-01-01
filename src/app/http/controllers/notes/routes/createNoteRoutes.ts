@@ -46,3 +46,4 @@ export function createNoteRoute(router: Router) {
     router.post("/upload-documents", upload.single("doc"), createNote); 
     return router;  
 }
+
