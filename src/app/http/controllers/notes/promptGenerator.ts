@@ -17,6 +17,7 @@ export async function generatePrompt<T extends Runnable>(llm: T, title: string):
         * The final image must be ** only the logo with a transparent background **.  
         
         Your output should be the prompt itself, and nothing more.  
+        Return the result as a JSON object with a "prompt" key.
         Here is the user's input: ** {input} ***`
     )
 
