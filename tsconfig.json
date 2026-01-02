@@ -16,6 +16,6 @@
     }
     
   },
-  "include": ["src", "lessons", "added"],
+  "include": ["src", "lessons", "added", "src/app/http/controllers/notes/.ts"],
   "exclude": ["node_modules"] 
 }
