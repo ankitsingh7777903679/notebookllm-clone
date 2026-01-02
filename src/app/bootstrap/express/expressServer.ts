@@ -51,9 +51,10 @@ export function expressServer(app: Express, PORT: number) {
         resave: false,
         saveUninitialized: false,
         cookie: { 
-            secure: true,      // Required for HTTPS (Codespaces uses HTTPS)
+            secure: process.env.NODE_ENV === 'production',
             httpOnly: true,
-            sameSite: 'none',  // Required for cross-origin cookies
+            // Use 'none' only in production (where cookies are Secure). For local dev use 'lax'
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         }
     };
@@ -71,7 +72,7 @@ export function expressServer(app: Express, PORT: number) {
             {
                 clientID: process.env.GOOGLE_CLIENT_ID as string,
                 clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-                callbackURL: process.env.CALL_BACK_URL,
+                callbackURL: process.env.CALL_BACK_URL || 'http://localhost:8000/auth/google/callback',
                 // passReqToCallback: true,
             },
             async (accessToken: string, refreshToken: string, profile: any, done: any) => {
