@@ -35,13 +35,13 @@ export async function loadText(filePath: string) {
 
 export async function loadDocument(
     filePath: string,
-    doctype: "pdf" | "html" | "txt",
+    // doctype: "pdf" | "html" | "txt",
     chunkSize = 800,
     chunkOverlap = 200,
 ) {
     const extentionWithoutDot=path.extname(filePath).replace('.','') 
     let docs = null;
-    switch (extentionWithoutDot.trim()) {
+    switch (extentionWithoutDot.trim().toLowerCase()) {
         case 'pdf':
             docs = await loadPDF(filePath);
             break;
@@ -51,7 +51,7 @@ export async function loadDocument(
         case 'txt':
             docs = await loadText(filePath);
             break;
-        default: throw new Error(`Unsupported file`);
+        default: throw new Error(`Unsupported file type: .${extentionWithoutDot}. Supported formats: pdf, html, txt`);
     }
     return splitDocToChunks(docs, { chunkSize, chunkOverlap });
 }
