@@ -10,56 +10,34 @@ import { ChatGroq } from "@langchain/groq";
 import { ChatOpenAI } from "@langchain/openai";
 import "dotenv/config"
 import Groq from "groq-sdk";
-const loader = new CheerioWebBaseLoader('https://lilianweng.github.io/posts/2023-03-15-prompt-engineering');
-const docs = await loader.load();
-const textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 500,     // Reduced from 1000
-    chunkOverlap: 100,  // Reduced from 200
-});
-const allSplitDocs = await textSplitter.splitDocuments(docs);
+import { Runnable } from "@langchain/core/runnables";
+
+
+export async function generateBriefingDoc<T extends Runnable>(llm: T, splitDocs: Document[]) {
+//     const loader = new CheerioWebBaseLoader('https://lilianweng.github.io/posts/2023-03-15-prompt-engineering');
+// const docs = await loader.load();
+// const textSplitter = new RecursiveCharacterTextSplitter({
+//     chunkSize: 500,     // Reduced from 1000
+//     chunkOverlap: 100,  // Reduced from 200
+// });
+// const allSplitDocs = await splitDocs.splitDocuments(docs);
 // Limit to first 10 documents to reduce API calls
-const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 token limit
+// const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 token limit
 
-// Option 1: OpenAI (Recommended - Higher rate limits)
-// const llm = new ChatOpenAI({
-//     model: 'minimax/minimax-m2:free',
-//     apiKey: "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",
-//     configuration: {
-//         baseURL: "https://openrouter.ai/api/v1",
-//     },
+// const llm = new ChatGroq({
+//     model: 'openai/gpt-oss-120b',
+//     apiKey: process.env.GROQ_API_KEY,
 //     temperature: 0.7,
-// });
 
-// const llmCollapseSummary = new ChatOpenAI({
-//     model: 'minimax/minimax-m2:free',
-//     apiKey: "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",
-//     configuration: {
-//         baseURL: "https://openrouter.ai/api/v1",
-//     },
-//     temperature: 0.7,
-// });
+// })
 
-// Option 2: Groq (Daily limit reached - wait 13 minutes)
-const llm = new ChatGroq({
-    model: 'openai/gpt-oss-120b',
-    apiKey: process.env.GROQ_API_KEY,
-    temperature: 0.7,
-    
-})
-
-const llmCollapseSummary = new ChatGroq({
+const llmCollapseBrief = new ChatGroq({
     model: 'moonshotai/kimi-k2-instruct-0905',
     apiKey: process.env.GROQ_API_KEY,
     temperature: 0.7,
-    
+
 })
-// https://fireworks.ai/
-// const llm = new ChatFireworks({
-// model: "accounts/fireworks/models/deepseek-v3p1",
-// temperature: 0.7,
-// apiKey: process.env. FIRE_WORKS_API_KEY,
-// });
-let tokenMax = 2000;  // Balanced to avoid infinite loops and stay within limits
+let tokenMax = 1000;  // Balanced to avoid infinite loops and stay within limits
 
 function approximateTokens(text: string): number {
     // Roughly: 1 token = 4 characters (English text)
@@ -98,7 +76,7 @@ const generateBriefingChunk = async (
     const mapPrompt = ChatPromptTemplate.fromMessages([
         [
             "user",
-                      `Create a professional briefing document for the following text.
+            `Create a professional briefing document for the following text.
 Include:
 - Summary of main ideas
 - Key takeaways
@@ -149,11 +127,11 @@ Distill these into a single cohesive briefing document.
 Maintain main ideas, key takeaways, and actionable insights.`,
 
         ],
-    
+
 
     ]);
     const prompt = await reducePrompt.invoke({ docs: input });
-    const response = await llmCollapseSummary.invoke(prompt);
+    const response = await llmCollapseBrief.invoke(prompt);
     return String(response.content);
 }
 
@@ -218,7 +196,7 @@ const app = graph.compile();
 //     }
 // )
 
-let finalBriefing = null;
+let finalBriefingDoc = null;
 
 for await (const step of await app.stream(
     { contents: splitDocs.map((doc) => doc.pageContent) },
@@ -226,9 +204,11 @@ for await (const step of await app.stream(
 )) {
     console.log(Object.keys(step));
     if (step.hasOwnProperty("generateFinalBriefing")) {
-        finalBriefing = step.generateFinalBriefing;
+        finalBriefingDoc = step.generateFinalBriefing;
     }
 }
 
-console.log('Final briefing document : ', finalBriefing)
+// console.log('Final briefing document : ', finalBriefingDoc)
 
+return finalBriefingDoc;
+}
