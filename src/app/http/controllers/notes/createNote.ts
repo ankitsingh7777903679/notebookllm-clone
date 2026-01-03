@@ -53,7 +53,7 @@ export async function createNote(req: Request, res: Response, next: NextFunction
             }
         )
 
-        const newDoc = await docRepo.createDoc({fileName, userId, noteId: newNote._id, title })
+        const newDoc = await docRepo.createDoc({fileName, userId, noteId: newNote._id })
 
         return res.status(201).send({ message: "Note created successfully", newDoc })
 
