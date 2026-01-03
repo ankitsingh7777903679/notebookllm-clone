@@ -35,7 +35,7 @@ export async function loadText(filePath: string) {
 
 export async function loadDocument(
     filePath: string,
-    doctype: "pdf" | "html" | "txt" | "md",
+    // doctype: "pdf" | "html" | "txt" | "md",
     chunkSize = 800,
     chunkOverlap = 200,
 ) {
