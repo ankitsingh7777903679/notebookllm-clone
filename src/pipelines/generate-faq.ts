@@ -10,15 +10,16 @@ import { ChatGroq } from "@langchain/groq";
 import { ChatOpenAI } from "@langchain/openai";
 import "dotenv/config"
 import Groq from "groq-sdk";
-const loader = new CheerioWebBaseLoader('https://lilianweng.github.io/posts/2023-03-15-prompt-engineering');
-const docs = await loader.load();
-const textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 500,     // Reduced from 1000
-    chunkOverlap: 100,  // Reduced from 200
-});
-const allSplitDocs = await textSplitter.splitDocuments(docs);
+import { Runnable } from "@langchain/core/runnables";
+// const loader = new CheerioWebBaseLoader('https://lilianweng.github.io/posts/2023-03-15-prompt-engineering');
+// const docs = await loader.load();
+// const textSplitter = new RecursiveCharacterTextSplitter({
+//     chunkSize: 500,     // Reduced from 1000
+//     chunkOverlap: 100,  // Reduced from 200
+// });
+// const allSplitDocs = await textSplitter.splitDocuments(docs);
 // Limit to first 10 documents to reduce API calls
-const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 token limit
+// const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 token limit
 
 // Option 1: OpenAI (Recommended - Higher rate limits)
 // const llm = new ChatOpenAI({
@@ -40,12 +41,17 @@ const splitDocs = allSplitDocs.slice(0, 7);  // Reduced to 5 to stay under 4096 
 // });
 
 // Option 2: Groq (Daily limit reached - wait 13 minutes)
-const llm = new ChatGroq({
-    model: 'openai/gpt-oss-120b',
-    apiKey: process.env.GROQ_API_KEY,
-    temperature: 0.7,
+
+
+export async function generateFAQ<T extends Runnable>(llm: T, splitDocs: Document[]) {
+
+
+// const llm = new ChatGroq({
+//     model: 'openai/gpt-oss-120b',
+//     apiKey: process.env.GROQ_API_KEY,
+//     temperature: 0.7,
     
-})
+// })
 
 const llmCollapseSummary = new ChatGroq({
     model: 'moonshotai/kimi-k2-instruct-0905',
@@ -59,7 +65,7 @@ const llmCollapseSummary = new ChatGroq({
 // temperature: 0.7,
 // apiKey: process.env. FIRE_WORKS_API_KEY,
 // });
-let tokenMax = 2000;  // Balanced to avoid infinite loops and stay within limits
+let tokenMax = 1000;  // Balanced to avoid infinite loops and stay within limits
 
 function approximateTokens(text: string): number {
     // Roughly: 1 token = 4 characters (English text)
@@ -217,7 +223,7 @@ const app = graph.compile();
 //     }
 // )
 
-let finalFaq = null;
+let finalFAQ = null;
 
 for await (const step of await app.stream(
     { contents: splitDocs.map((doc) => doc.pageContent) },
@@ -225,9 +231,10 @@ for await (const step of await app.stream(
 )) {
     console.log(Object.keys(step));
     if (step.hasOwnProperty("generateFinalFaq")) {
-        finalFaq = step.generateFinalFaq;
+        finalFAQ = step.generateFinalFaq;
     }
 }
 
-console.log('Final FAQ document : ', finalFaq)
-
+// console.log('Final FAQ document : ', finalFAQ)
+return finalFAQ;
+}
