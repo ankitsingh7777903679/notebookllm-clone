@@ -4,9 +4,10 @@ import { NoteRepository } from '../repositorys/NoteRepository';
 import { cwd } from 'process';
 import path from 'path/win32';
 import { DocRepository } from '../repositorys/DocRepository';
-import { loadDocument } from '../loaders/loaders';
+// import { loadDocument } from '../loaders/loaders';
 import { generateSummary } from '@/pipelines/summary';
 import { LLM } from '@/app/llm/LLM';
+import { loadDocument } from '../loaders/loaders';
 
 
 
@@ -21,6 +22,8 @@ export async function updateOrCreateSummary(req: Request, res: Response, next: N
         // - call generateSummary 
         // -storeSummaryInDB  
         const {userId, noteId}:Record<string, any> = req.body;
+        console.log("userId, noteId", userId, noteId);
+        console.log("req.body", req.body);
         const llm = LLM.getInstance()
         const docRepo = DocRepository.getInstance()
         const doc = await docRepo.getSingleDoc({ userId, noteId});
