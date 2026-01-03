@@ -45,7 +45,18 @@ A TypeScript-based AI toolkit leveraging LangChain, OpenAI's GPT models, and Gro
 - **Vector Database**: Pinecone integration with Cohere embeddings
 - **Smart File Naming**: AI-generated filenames for outputs
 
-## 📋 Prerequisites
+## � Documentation & Guide Structure
+
+For a detailed explanation of how the workflows, functions, inputs, and outputs work, please refer to the **[DOCUMENTATION.md](DOCUMENTATION.md)** file.
+
+It covers:
+- **Ingestion Pipeline**: How documents are processed and stored.
+- **Summarization & Study Guides**: The Map-Reduce algorithms used for content generation.
+- **Mind Maps**: How text is converted into visual structures.
+- **QA & RAG**: The retrieval-augmented generation flow.
+- **API Endpoints**: How to interact with the backend services.
+
+## �📋 Prerequisites
 
 - Node.js (v16 or higher)
 - npm or yarn
