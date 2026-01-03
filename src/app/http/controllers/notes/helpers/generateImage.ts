@@ -5,15 +5,16 @@ export const generateImage = async (prompt: string, path: string, fileName: stri
     try {
         // Dynamically import the ESM-only client at runtime to avoid CommonJS/ESM interop errors
         console.log("Generating image...");
+        console
         const { Client } = await import("@gradio/client");
-        const client = await Client.connect('NihalGazi/FLUX-Unlimited')
+        const client = await Client.connect('anycoderapps/Z-Image-Turbo')
         const result = await client.predict("/generate_image", {
             prompt: prompt,
-            width: 512,
-            height: 512,
-            seed: 3,
-            randomize: true,
-            server_choice: "Google US Server"
+            // width: 512,
+            // height: 512,
+            // seed: 3,
+            // randomize: true,
+            // server_choice: "Google US Server"
         });
         console.log("Image generation result:", result);
         const imageUrl = (result.data as Array<{ url: string }>)[0].url;
