@@ -33,7 +33,9 @@ export async function createNote(req: Request, res: Response, next: NextFunction
         if (ext === '.pdf') docType = 'pdf';
         else if (ext === '.html' || ext === '.htm') docType = 'html';
 
-        const docSplit = await loadDocument(`${uploadsDir}/${fileName}`, docType)
+        // const docSplit = await loadDocument(`${uploadsDir}/${fileName}`, docType)
+        const docSplit = await loadDocument(`${uploadsDir}/${fileName}`)
+
 
         const firstChunk = getDocChunk(docSplit)
         // console.log("First Chunk: ", firstChunk)
