@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 });
 
 const documentFileFilter = (req: any, file: any, cb: (error: any, acceptFile: boolean) => void) => {
-    const allowedTypes = /pdf|doc|docx|html|csv|txt/;
+    const allowedTypes = /pdf|doc|docx|html|csv|txt|md|json|xml|xlsx/;
     const isDoc = allowedTypes.test(file.mimetype) || allowedTypes.test(file.originalname);
     if (isDoc) {
         cb(null, true);
