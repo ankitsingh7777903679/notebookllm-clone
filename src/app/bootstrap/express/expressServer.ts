@@ -42,7 +42,7 @@ export function expressServer(app: Express, PORT: number) {
     const sess: session.SessionOptions = {
         // Use Mongoose client so the session store writes to the same DB (not default `test`)
         store: MongoStore.create({
-            client: mongoose.connection.getClient(),
+            mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/notebooklm',
             dbName: process.env.MONGO_DB_NAME || 'notebooklm',
             collectionName: "sessions",
         }),
