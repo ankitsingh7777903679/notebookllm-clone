@@ -22,7 +22,7 @@ export class DocRepository {
 
     }
 
-    async createDoc(docProps: { fileName: string, userId: string, noteId: Types.ObjectId, title: string },
+    async createDoc(docProps: { fileName: string, userId: string, noteId: Types.ObjectId },
 
     ) {
 
@@ -73,7 +73,7 @@ export class DocRepository {
         const { userId, noteId, faq } = props;
         const row = await Doc.findOneAndUpdate({ userId, noteId },
             {
-                $set: { faq }
+                $set: { FAQ: faq }
             }, { new: true, runValidators: true }
         )
 
@@ -117,7 +117,8 @@ export class DocRepository {
 
 
     async getSingleDoc(props: {userId:string, noteId: string}){ 
-        const doc=await Doc.findOne({ ... props}) 
+        const { userId, noteId } = props;
+        const doc=await Doc.findOne({ userId, noteId}) 
         return doc  
     }
 
